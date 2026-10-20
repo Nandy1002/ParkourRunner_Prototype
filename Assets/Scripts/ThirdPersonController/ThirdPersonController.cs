@@ -118,15 +118,15 @@ public class ThirdPersonController : MonoBehaviour
     public bool InvertY = false;
 
     [Header("Model Fitting (optional)")]
-    [Tooltip("Apply the capsule + camera root values below on Awake. Turn off to use whatever is set in the inspector")]
+    [Tooltip("Apply the capsule + camera root values below on Awake. Automatically adapts to model scale")]
     public bool AutoFitToModel = true;
-    public float CapsuleHeight = 1.25f;
-    public Vector3 CapsuleCenter = new Vector3(0f, -0.26f, 0f);
+    public float CapsuleHeight = 1.5f;
+    public Vector3 CapsuleCenter = new Vector3(0f, 0.75f, 0f);
     public float CapsuleRadius = 0.28f;
     public float StepOffset = 0.25f;
     public float SlopeLimit = 45.0f;
     public float SkinWidth = 0.02f;
-    public Vector3 CameraRootLocalPosition = new Vector3(0f, 0.30f, 0f);
+    public Vector3 CameraRootLocalPosition = new Vector3(0f, 1.35f, 0f);
 
     // ---------------------------------------------------------------- public API
 
@@ -230,17 +230,18 @@ public class ThirdPersonController : MonoBehaviour
 
         if (AutoFitToModel)
         {
-            _controller.height = CapsuleHeight;
-            _controller.center = CapsuleCenter;
-            _controller.radius = CapsuleRadius;
-            _controller.stepOffset = StepOffset;
+            float s = Mathf.Max(0.0001f, transform.lossyScale.y);
+            _controller.height = CapsuleHeight / s;
+            _controller.center = CapsuleCenter / s;
+            _controller.radius = CapsuleRadius / s;
+            _controller.stepOffset = StepOffset / s;
             _controller.slopeLimit = SlopeLimit;
-            _controller.skinWidth = SkinWidth;
+            _controller.skinWidth = SkinWidth / s;
             _controller.minMoveDistance = 0f;
 
             if (CinemachineCameraTarget != null)
             {
-                CinemachineCameraTarget.transform.localPosition = CameraRootLocalPosition;
+                CinemachineCameraTarget.transform.localPosition = CameraRootLocalPosition / s;
             }
         }
     }
@@ -273,7 +274,17 @@ public class ThirdPersonController : MonoBehaviour
 
     private void SetupCameraTarget()
     {
-        if (CinemachineCameraTarget != null) return;
+        float scaleY = Mathf.Max(0.0001f, transform.lossyScale.y);
+        Vector3 targetLocalPos = CameraRootLocalPosition / scaleY;
+
+        if (CinemachineCameraTarget != null)
+        {
+            if (AutoFitToModel && CinemachineCameraTarget.transform.IsChildOf(transform))
+            {
+                CinemachineCameraTarget.transform.localPosition = targetLocalPos;
+            }
+            return;
+        }
 
         Transform found = transform.Find("PlayerCameraRoot");
         if (found == null && transform.parent != null) found = transform.parent.Find("PlayerCameraRoot");
@@ -282,13 +293,17 @@ public class ThirdPersonController : MonoBehaviour
         {
             var camRoot = new GameObject("PlayerCameraRoot");
             camRoot.transform.SetParent(transform, false);
-            camRoot.transform.localPosition = CameraRootLocalPosition;
+            camRoot.transform.localPosition = targetLocalPos;
             camRoot.tag = "CinemachineTarget";
             CinemachineCameraTarget = camRoot;
         }
         else
         {
             CinemachineCameraTarget = found.gameObject;
+            if (AutoFitToModel && CinemachineCameraTarget.transform.IsChildOf(transform))
+            {
+                CinemachineCameraTarget.transform.localPosition = targetLocalPos;
+            }
         }
     }
 
@@ -323,8 +338,9 @@ public class ThirdPersonController : MonoBehaviour
     {
         if (_controller != null)
         {
-            Vector3 capsuleBottom = transform.position + _controller.center -
-                                    Vector3.up * (_controller.height * 0.5f);
+            Vector3 worldCenter = transform.TransformPoint(_controller.center);
+            float worldHalfHeight = (_controller.height * transform.lossyScale.y) * 0.5f;
+            Vector3 capsuleBottom = worldCenter - Vector3.up * worldHalfHeight;
             return capsuleBottom + Vector3.up * (GroundedRadius * 0.5f);
         }
 
@@ -375,11 +391,12 @@ public class ThirdPersonController : MonoBehaviour
         _groundNormal = Vector3.up;
         if (!Grounded) return;
 
-        // start from the centre of the capsule's bottom sphere, shoot straight down
-        Vector3 origin = transform.position + _controller.center -
-                         Vector3.up * (_controller.height * 0.5f - _controller.radius);
+        Vector3 worldCenter = transform.TransformPoint(_controller.center);
+        float worldHalfHeight = (_controller.height * transform.lossyScale.y) * 0.5f;
+        float worldRadius = _controller.radius * transform.lossyScale.x;
+        Vector3 origin = worldCenter - Vector3.up * (worldHalfHeight - worldRadius);
 
-        int count = Physics.RaycastNonAlloc(origin, Vector3.down, _rayHits, _controller.radius + 0.3f,
+        int count = Physics.RaycastNonAlloc(origin, Vector3.down, _rayHits, worldRadius + 0.3f,
             GroundLayers, QueryTriggerInteraction.Ignore);
 
         float best = float.MaxValue;

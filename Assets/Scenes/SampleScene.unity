@@ -455,33 +455,9 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 5804685460355293697, guid: 6a136d484a86be347b323dfdedfc18af, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0.20000005
-      objectReference: {fileID: 0}
-    - target: {fileID: 5804685460355293697, guid: 6a136d484a86be347b323dfdedfc18af, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.44500005
-      objectReference: {fileID: 0}
-    - target: {fileID: 5804685460355293697, guid: 6a136d484a86be347b323dfdedfc18af, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -4
-      objectReference: {fileID: 0}
-    - target: {fileID: 5983090940698345758, guid: 6a136d484a86be347b323dfdedfc18af, type: 3}
-      propertyPath: m_RenderPostProcessing
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6722312073243567366, guid: 6a136d484a86be347b323dfdedfc18af, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.885
-      objectReference: {fileID: 0}
     - target: {fileID: 8343666758494342883, guid: 6a136d484a86be347b323dfdedfc18af, type: 3}
       propertyPath: m_Name
       value: TriggerThirdPersonController
-      objectReference: {fileID: 0}
-    - target: {fileID: 8343666758494342883, guid: 6a136d484a86be347b323dfdedfc18af, type: 3}
-      propertyPath: m_IsActive
-      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
