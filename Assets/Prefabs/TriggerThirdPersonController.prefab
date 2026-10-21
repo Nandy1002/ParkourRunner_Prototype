@@ -186,6 +186,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 3744eb9f37abc3e42802e09219224ab8, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7140449498230712443}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 3744eb9f37abc3e42802e09219224ab8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8180449498230712443}
   m_SourcePrefab: {fileID: 100100000, guid: 3744eb9f37abc3e42802e09219224ab8, type: 3}
 --- !u!4 &260970283802256874 stripped
 Transform:
@@ -235,7 +238,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   MoveSpeed: 2
-  SprintSpeed: 5.335
+  RunSpeed: 5
+  SprintSpeed: 8
+  SprintAnimationBuildUp: 4
   RotationSmoothTime: 0.12
   Acceleration: 20
   Deceleration: 30
@@ -253,14 +258,6 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 274649b0e221539409070ebf6c18918b, type: 3}
   - {fileID: 8300000, guid: a3194b8bbc96ef84fab1f98f4b7dae3e, type: 3}
   FootstepAudioVolume: 0.3
-  JumpHeight: 1.2
-  Gravity: -15
-  JumpTimeout: 0.3
-  FallTimeout: 0.15
-  CoyoteTime: 0.12
-  JumpBufferTime: 0.15
-  TerminalVelocity: 53
-  GroundedStickVelocity: -2
   Grounded: 1
   GroundedOffset: -0.14
   GroundedRadius: 0.28
@@ -284,6 +281,22 @@ MonoBehaviour:
   SlopeLimit: 45
   SkinWidth: 0.02
   CameraRootLocalPosition: {x: 0, y: 1.35, z: 0}
+--- !u!114 &8180449498230712443
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 636405833055813456}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4590913955ec6ae4f82f9e4a78abe901, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  JumpHeight: 1.2
+  Gravity: -15
+  TerminalVelocity: 53
+  GroundedStickVelocity: -2
 --- !u!114 &7193317729218435170
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -299,7 +312,8 @@ MonoBehaviour:
   move: {x: 0, y: 0}
   look: {x: 0, y: 0}
   jump: 0
-  sprint: 0
+  run: 0
+  sprintParkour: 0
   analogMovement: 0
   cursorLocked: 1
   cursorInputForLook: 1

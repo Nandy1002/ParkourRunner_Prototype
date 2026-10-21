@@ -10,7 +10,6 @@ using UnityEngine.InputSystem;
 /// Third person controller (CharacterController based).
 /// Improvements over the stock version:
 ///  - Real momentum: acceleration / deceleration on the ground, reduced control in the air
-///  - Coyote time + jump buffering (much more forgiving jumps)
 ///  - Slope-aware movement (no bouncing when walking down ramps)
 ///  - Head-bump handling (hitting a ceiling cancels upward velocity)
 ///  - Landing / jump events for VFX, camera shake, fall damage, etc.
@@ -19,7 +18,8 @@ using UnityEngine.InputSystem;
 ///  - Hard-coded model fitting is now optional and configurable
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
-[RequireComponent(typeof(StarterAssetsInputs))]
+[RequireComponent(typeof(MainInputAssets))]
+[RequireComponent(typeof(ParkourController))]
 #if ENABLE_INPUT_SYSTEM
 [RequireComponent(typeof(PlayerInput))]
 #endif
@@ -29,8 +29,14 @@ public class ThirdPersonController : MonoBehaviour
     [Tooltip("Move speed of the character in m/s")]
     public float MoveSpeed = 2.0f;
 
+    [Tooltip("Run speed of the character in m/s")]
+    public float RunSpeed = 5f;
+
     [Tooltip("Sprint speed of the character in m/s")]
-    public float SprintSpeed = 5.335f;
+    public float SprintSpeed = 8f;
+
+    [Tooltip("How quickly the sprint animation blends up from the run animation")]
+    public float SprintAnimationBuildUp = 4.0f;
 
     [Tooltip("How fast the character turns to face movement direction")]
     [Range(0.0f, 0.3f)]
@@ -50,31 +56,6 @@ public class ThirdPersonController : MonoBehaviour
     public AudioClip LandingAudioClip;
     public AudioClip[] FootstepAudioClips;
     [Range(0, 1)] public float FootstepAudioVolume = 0.5f;
-
-    [Header("Jump & Gravity")]
-    [Tooltip("The height the player can jump")]
-    public float JumpHeight = 1.2f;
-
-    [Tooltip("The character uses its own gravity value. The engine default is -9.81f")]
-    public float Gravity = -15.0f;
-
-    [Tooltip("Time required to pass before being able to jump again. Set to 0f to instantly jump again")]
-    public float JumpTimeout = 0.1f;
-
-    [Tooltip("Time required to pass before entering the fall state. Useful for walking down stairs")]
-    public float FallTimeout = 0.15f;
-
-    [Tooltip("Grace period after leaving a ledge during which the player can still jump")]
-    public float CoyoteTime = 0.12f;
-
-    [Tooltip("If jump is pressed slightly before landing, the jump still fires when we touch the ground")]
-    public float JumpBufferTime = 0.15f;
-
-    [Tooltip("Maximum falling speed in m/s")]
-    public float TerminalVelocity = 53.0f;
-
-    [Tooltip("Small downward velocity applied while grounded so we stay glued to the floor")]
-    public float GroundedStickVelocity = -2.0f;
 
     [Header("Player Grounded")]
     [Tooltip("If the character is grounded or not. Not part of the CharacterController built in grounded check")]
@@ -133,12 +114,9 @@ public class ThirdPersonController : MonoBehaviour
     /// <summary>Fired when the player touches the ground. Argument = downward impact speed (m/s).</summary>
     public event Action<float> Landed;
 
-    /// <summary>Fired when the player starts a jump.</summary>
-    public event Action Jumped;
-
     public float CurrentSpeed => _horizontalVelocity.magnitude;
-    public Vector3 Velocity => _horizontalVelocity + Vector3.up * _verticalVelocity;
-    public bool IsSprinting => _input != null && _input.sprint && _input.move != Vector2.zero;
+    public Vector3 Velocity => _horizontalVelocity + Vector3.up * (_parkour != null ? _parkour.VerticalVelocity : 0f);
+    public bool IsSprinting => _input != null && _input.move != Vector2.zero && _input.run && _input.sprintParkour;
 
     // ---------------------------------------------------------------- private state
 
@@ -151,14 +129,7 @@ public class ThirdPersonController : MonoBehaviour
     private float _animationBlend;
     private float _targetRotation;
     private float _rotationVelocity;
-    private float _verticalVelocity;
     private Vector3 _groundNormal = Vector3.up;
-
-    // timers
-    private float _jumpCooldownTimer;
-    private float _fallTimeoutDelta;
-    private float _coyoteTimer;
-    private float _jumpBufferTimer;
 
     // grounded
     private bool _wasGrounded = true;
@@ -168,8 +139,6 @@ public class ThirdPersonController : MonoBehaviour
     // animation IDs
     private int _animIDSpeed;
     private int _animIDGrounded;
-    private int _animIDJump;
-    private int _animIDFreeFall;
     private int _animIDMotionSpeed;
 
 #if ENABLE_INPUT_SYSTEM
@@ -177,12 +146,15 @@ public class ThirdPersonController : MonoBehaviour
 #endif
     private Animator _animator;
     private CharacterController _controller;
-    private StarterAssetsInputs _input;
+    private MainInputAssets _input;
+    private ParkourController _parkour;
     private GameObject _mainCamera;
 
     private const float _threshold = 0.01f;
+    private const float SprintAnimationThreshold = 10f;
 
     private bool _hasAnimator;
+    private bool _hasControl = true;
 
     private bool IsCurrentDeviceMouse
     {
@@ -209,7 +181,10 @@ public class ThirdPersonController : MonoBehaviour
         AssignAnimationIDs();
 
         _controller = GetComponent<CharacterController>();
-        _input = GetComponent<StarterAssetsInputs>();
+        _input = GetComponent<MainInputAssets>();
+        _parkour = GetComponent<ParkourController>();
+        if (_parkour == null) _parkour = gameObject.AddComponent<ParkourController>();
+        _input.SetInputEnabled(_hasControl);
 #if ENABLE_INPUT_SYSTEM
         _playerInput = GetComponent<PlayerInput>();
 #endif
@@ -254,14 +229,12 @@ public class ThirdPersonController : MonoBehaviour
 
         if (AutoWireCinemachine) WireCinemachineCameras();
 
-        _jumpCooldownTimer = 0f;
-        _fallTimeoutDelta = FallTimeout;
     }
 
     private void Update()
     {
-        JumpAndGravity();
         GroundedCheck();
+        _parkour.Tick(Grounded, _hasControl);
         Move();
     }
 
@@ -327,8 +300,6 @@ public class ThirdPersonController : MonoBehaviour
     {
         _animIDSpeed = Animator.StringToHash("Speed");
         _animIDGrounded = Animator.StringToHash("Grounded");
-        _animIDJump = Animator.StringToHash("Jump");
-        _animIDFreeFall = Animator.StringToHash("FreeFall");
         _animIDMotionSpeed = Animator.StringToHash("MotionSpeed");
     }
 
@@ -373,13 +344,13 @@ public class ThirdPersonController : MonoBehaviour
         Grounded = hasExternalGround || _controller.isGrounded;
 
         // if we are moving upwards (just jumped) we are, by definition, not grounded
-        if (_verticalVelocity > 0f) Grounded = false;
+        if (_parkour.VerticalVelocity > 0f) Grounded = false;
 
         UpdateGroundNormal();
 
         if (Grounded && !_wasGrounded)
         {
-            Landed?.Invoke(Mathf.Max(0f, -_verticalVelocity));
+            Landed?.Invoke(Mathf.Max(0f, -_parkour.VerticalVelocity));
         }
         _wasGrounded = Grounded;
 
@@ -421,7 +392,7 @@ public class ThirdPersonController : MonoBehaviour
 
     private void CameraRotation()
     {
-        if (CinemachineCameraTarget == null) return;
+        if (!_hasControl || CinemachineCameraTarget == null) return;
 
         if (_input.look.sqrMagnitude >= _threshold && !LockCameraPosition)
         {
@@ -449,7 +420,11 @@ public class ThirdPersonController : MonoBehaviour
         float dt = Time.deltaTime;
         bool hasInput = _input.move != Vector2.zero;
 
-        float targetSpeed = _input.sprint ? SprintSpeed : MoveSpeed;
+        float targetSpeed = MoveSpeed;
+        if (hasInput && _input.run)
+        {
+            targetSpeed = IsSprinting ? SprintSpeed : RunSpeed;
+        }
         float inputMagnitude = _input.analogMovement ? Mathf.Min(1f, _input.move.magnitude) : 1f;
 
         // ---- desired velocity (camera relative)
@@ -488,18 +463,22 @@ public class ThirdPersonController : MonoBehaviour
         }
 
         // ---- move
-        Vector3 velocity = horizontal + Vector3.up * _verticalVelocity;
+        Vector3 velocity = horizontal + Vector3.up * _parkour.VerticalVelocity;
         CollisionFlags flags = _controller.Move(velocity * dt);
 
         // bonk your head -> stop going up
-        if ((flags & CollisionFlags.Above) != 0 && _verticalVelocity > 0f)
+        if ((flags & CollisionFlags.Above) != 0 && _parkour.VerticalVelocity > 0f)
         {
-            _verticalVelocity = 0f;
+            _parkour.StopUpwardMovement();
         }
 
         // ---- animator
         float planarSpeed = _horizontalVelocity.magnitude;
-        _animationBlend = Mathf.Lerp(_animationBlend, planarSpeed, dt * 10f);
+        float targetAnimationSpeed = IsSprinting ? SprintAnimationThreshold : planarSpeed;
+        float blendRate = IsSprinting && targetAnimationSpeed > _animationBlend
+            ? SprintAnimationBuildUp
+            : 25f;
+        _animationBlend = Mathf.MoveTowards(_animationBlend, targetAnimationSpeed, dt * blendRate);
         if (_animationBlend < 0.01f) _animationBlend = 0f;
 
         if (_hasAnimator)
@@ -509,72 +488,6 @@ public class ThirdPersonController : MonoBehaviour
         }
     }
 
-    private void JumpAndGravity()
-    {
-        float dt = Time.deltaTime;
-
-        // ---- buffer the jump press (we consume the input flag ourselves)
-        if (_input.jump)
-        {
-            _jumpBufferTimer = JumpBufferTime;
-            _input.jump = false;
-        }
-        else if (_jumpBufferTimer > 0f)
-        {
-            _jumpBufferTimer -= dt;
-        }
-
-        // ---- coyote time
-        if (Grounded) _coyoteTimer = CoyoteTime;
-        else if (_coyoteTimer > 0f) _coyoteTimer -= dt;
-
-        if (_jumpCooldownTimer > 0f) _jumpCooldownTimer -= dt;
-
-        if (Grounded)
-        {
-            _fallTimeoutDelta = FallTimeout;
-
-            if (_hasAnimator)
-            {
-                _animator.SetBool(_animIDJump, false);
-                _animator.SetBool(_animIDFreeFall, false);
-            }
-
-            // stop our velocity dropping infinitely when grounded
-            if (_verticalVelocity < 0f) _verticalVelocity = GroundedStickVelocity;
-        }
-        else
-        {
-            if (_fallTimeoutDelta >= 0f)
-            {
-                _fallTimeoutDelta -= dt;
-            }
-            else if (_hasAnimator)
-            {
-                _animator.SetBool(_animIDFreeFall, true);
-            }
-        }
-
-        // ---- jump (works on the ground and during coyote time)
-        if (_jumpBufferTimer > 0f && _coyoteTimer > 0f && _jumpCooldownTimer <= 0f)
-        {
-            // the square root of H * -2 * G = how much velocity needed to reach desired height
-            _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
-
-            _jumpBufferTimer = 0f;
-            _coyoteTimer = 0f;
-            _jumpCooldownTimer = JumpTimeout;
-
-            if (_hasAnimator) _animator.SetBool(_animIDJump, true);
-            Jumped?.Invoke();
-        }
-
-        // ---- gravity
-        if (!Grounded || _verticalVelocity > 0f)
-        {
-            _verticalVelocity = Mathf.Max(_verticalVelocity + Gravity * dt, -TerminalVelocity);
-        }
-    }
 
     // ---------------------------------------------------------------- misc
 
@@ -609,5 +522,16 @@ public class ThirdPersonController : MonoBehaviour
 
         AudioSource.PlayClipAtPoint(LandingAudioClip,
             transform.TransformPoint(_controller.center), FootstepAudioVolume);
+    }
+    public void SetControl(bool hasControl)
+    {
+        if (_hasControl == hasControl) return;
+        _hasControl = hasControl;
+        _input.SetInputEnabled(hasControl);
+        if (!hasControl) _parkour.ClearJumpInput();
+    }
+    public bool GetControl()
+    {
+        return _hasControl;
     }
 }

@@ -4,7 +4,7 @@ using UnityEngine;
 public class VirtualInput : MonoBehaviour
 {
     [Header("Output")]
-    public StarterAssetsInputs StarterAssetsInputs;
+    public MainInputAssets StarterAssetsInputs;
 
     public void VirtualMoveInput(Vector2 virtualMoveDirection)
     {

@@ -37,9 +37,19 @@
                     "priority": 0
                 },
                 {
-                    "name": "Sprint",
+                    "name": "Run",
                     "type": "PassThrough",
                     "id": "980e881e-182c-404c-8cbf-3d09fdb48fef",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
+                    "name": "Sprint/Parkour",
+                    "type": "Button",
+                    "id": "1b3eb5e1-2c69-470c-bf60-4aa3d703a5e0",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -209,7 +219,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "KeyboardMouse",
-                    "action": "Sprint",
+                    "action": "Run",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -220,18 +230,18 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Gamepad",
-                    "action": "Sprint",
+                    "action": "Run",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
                 {
                     "name": "",
-                    "id": "4c47e040-7fa4-4f1a-b97c-fd853efd9f8d",
+                    "id": "c0af4638-5bd0-4cdd-9836-0cadd6a1cbc6",
                     "path": "<Mouse>/rightButton",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
-                    "action": "Sprint",
+                    "groups": ";KeyboardMouse",
+                    "action": "Sprint/Parkour",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
