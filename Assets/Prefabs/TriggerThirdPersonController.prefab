@@ -48,6 +48,30 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5148538678464000054, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
+      propertyPath: parkourActions.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5148538678464000054, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
+      propertyPath: 'parkourActions.Array.data[0]'
+      value: 
+      objectReference: {fileID: 11400000, guid: 3367096acaf0b1f42b80a5194fa86e50, type: 2}
+    - target: {fileID: 5148538678464000054, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
+      propertyPath: 'parkourActions.Array.data[1]'
+      value: 
+      objectReference: {fileID: 11400000, guid: 92a3f74a0ecb4c4c8e5919366db4c281, type: 2}
+    - target: {fileID: 5148538678464000054, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
+      propertyPath: 'parkourActions.Array.data[2]'
+      value: 
+      objectReference: {fileID: 11400000, guid: 7ba30ea7cdd041ecb48ab8cc2d499674, type: 2}
+    - target: {fileID: 5148538678464000054, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
+      propertyPath: 'parkourActions.Array.data[3]'
+      value: 
+      objectReference: {fileID: 11400000, guid: f10cb522b5ce42daa22cc947adbcb118, type: 2}
+    - target: {fileID: 5148538678464000054, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
+      propertyPath: 'parkourActions.Array.data[4]'
+      value: 
+      objectReference: {fileID: 11400000, guid: 59d69f24eacb44a5bba4c0888734c118, type: 2}
     - target: {fileID: 8047161636021232021, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
       propertyPath: m_Name
       value: TriggerThirdPersonController

@@ -387,8 +387,13 @@ public class ThirdPersonController : MonoBehaviour
 
     private void OnAnimatorMove()
     {
-        // Defining OnAnimatorMove delegates root motion to script, suppressing Mecanim
-        // from automatically overwriting transform.position with in-place (0,0,0) motion.
+        // Keep locomotion script-driven, but use the animation's authored root motion
+        // while a parkour action is running.
+        if (_parkour == null || !_parkour.IsPerformingAction || _animator == null)
+            return;
+
+        transform.position += _animator.deltaPosition;
+        transform.rotation *= _animator.deltaRotation;
     }
 
     private void OnFootstep(AnimationEvent animationEvent)

@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using StarterAssets;
 using UnityEngine;
 
@@ -15,6 +17,10 @@ public class ParkourController : MonoBehaviour
     public bool Grounded { get; private set; }
     public Vector3 GroundNormal { get; private set; } = Vector3.up;
     public float VerticalVelocity { get; private set; }
+    public ParkourActionSO CurrentParkourAction { get; private set; }
+    public bool IsPerformingAction => inAction;
+
+    public List<ParkourActionSO> parkourActions;
 
     private CharacterController _controller;
     private MainInputAssets _input;
@@ -25,6 +31,8 @@ public class ParkourController : MonoBehaviour
     private Vector3 _jumpForwardVelocity;
     private Vector3 _jumpForwardTarget;
     private float _jumpBuffer;
+    private bool inAction;
+    private GameObject _lastActionObstacle;
 
     private static readonly int GroundedId = Animator.StringToHash("Grounded");
     private static readonly int JumpId = Animator.StringToHash("Jump");
@@ -41,6 +49,13 @@ public class ParkourController : MonoBehaviour
 
     private void Update()
     {
+        if (inAction)
+        {
+            _input.jump = false;
+            _jumpBuffer = 0f;
+            return;
+        }
+
         CheckGround();
         bool wasGrounded = Grounded;
 
@@ -52,7 +67,10 @@ public class ParkourController : MonoBehaviour
         HandleLanding(wasGrounded);
         UpdateJumpAnimation();
 
-        _obstacleScanner.CheckForObstacle();
+        if (_obstacleScanner != null)
+            _obstacleScanner.GetObstacleData();
+
+        TryDoParkour();
         
     }
 
@@ -157,5 +175,106 @@ public class ParkourController : MonoBehaviour
     public void ClearJumpInput()
     {
         _input.jump = false;
+    }
+    private State GetCurrentPlayerState()
+    {
+        if (_thirdPerson != null && _thirdPerson.IsSprinting)
+            return State.Sprint;
+
+        if (_input != null && _input.run)
+            return State.Run;
+
+        return State.Walk;
+    }
+    private void TryDoParkour()
+    {
+        if (inAction || !Grounded || _jumpInProgress || _obstacleScanner == null || parkourActions == null)
+            return;
+
+        ObstacleData obstacle = _obstacleScanner.currentObstacle;
+        if (obstacle == null)
+        {
+            CurrentParkourAction = null;
+            _lastActionObstacle = null;
+            return;
+        }
+
+        if (obstacle.obstacle == _lastActionObstacle)
+            return;
+
+        State state = GetCurrentPlayerState();
+        foreach (ParkourActionSO action in parkourActions)
+        {
+            if (action == null || !action.CanDOAction(obstacle, state))
+                continue;
+
+            CurrentParkourAction = action;
+            StartCoroutine(DoParkourAction(action, obstacle));
+            return;
+        }
+
+        CurrentParkourAction = null;
+    }
+    private IEnumerator DoParkourAction(ParkourActionSO parkourAction, ObstacleData obstacleData)
+    {
+        GameObject obstacle = obstacleData.obstacle;
+        if (_animator == null || string.IsNullOrWhiteSpace(parkourAction.AnimationStateName))
+        {
+            Debug.LogWarning(
+                $"Parkour action '{parkourAction.name}' needs an Animator and an animation state name.",
+                this);
+            _lastActionObstacle = obstacle;
+            yield break;
+        }
+
+        inAction = true;
+        _lastActionObstacle = obstacle;
+        bool restoreControl = _thirdPerson != null && _thirdPerson.GetControl();
+        bool restoreController = _controller.enabled;
+        if (_thirdPerson != null)
+            _thirdPerson.SetControl(false);
+
+        // The upright CharacterController blocks the animation's path over the
+        // obstacle, so root motion moves the transform directly during this action.
+        _controller.enabled = false;
+
+        _jumpBuffer = 0f;
+        SetAnimation(JumpId, false);
+        SetAnimation(FreeFallId, false);
+
+        _animator.Play(parkourAction.AnimationStateName, 0, 0f);
+        yield return null;
+
+        float elapsed = 0f;
+        AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+        if (!stateInfo.IsName(parkourAction.AnimationStateName))
+        {
+            Debug.LogWarning(
+                $"Animator state '{parkourAction.AnimationStateName}' for parkour action " +
+                $"'{parkourAction.name}' was not found on layer 0.",
+                this);
+        }
+        else
+        {
+            float timeout = Mathf.Max(stateInfo.length + 1f, 1f);
+            while (stateInfo.IsName(parkourAction.AnimationStateName) &&
+                   stateInfo.normalizedTime < 1f && elapsed < timeout)
+            {
+                elapsed += Time.deltaTime;
+                yield return null;
+                stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+            }
+        }
+
+        FinishParkourAction(restoreControl, restoreController);
+    }
+
+    private void FinishParkourAction(bool restoreControl, bool restoreController)
+    {
+        if (restoreControl)
+            _thirdPerson.SetControl(true);
+
+        _controller.enabled = restoreController;
+        inAction = false;
     }
 }

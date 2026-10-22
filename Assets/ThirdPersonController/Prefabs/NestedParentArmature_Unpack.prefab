@@ -626,7 +626,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ObstacleScanner
   forwardOffset: {x: 0, y: 0.25, z: 0}
-  forwardLength: 2
+  forwardLength: 6.5
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 64

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b761724fb326c77429b7922412f39969, type: 3}
+  m_Name: FrontFlipAction
+  m_EditorClassIdentifier: Assembly-CSharp::ParkourActionSO
+  AnimationName: FrontFlip
+  minHeight: 1.25
+  maxHeight: 2.2
+  minLength: 0
+  maxLength: 2.5
+  possibleStates: 0200000001000000
+  triggerDistance: 3.5
