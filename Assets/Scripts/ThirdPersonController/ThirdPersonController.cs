@@ -293,7 +293,7 @@ public class ThirdPersonController : MonoBehaviour
 
     private void CameraRotation()
     {
-        if (!_hasControl || CinemachineCameraTarget == null) return;
+        if (CinemachineCameraTarget == null) return;
 
         if (_input.look.sqrMagnitude >= _threshold && !LockCameraPosition)
         {
@@ -420,7 +420,6 @@ public class ThirdPersonController : MonoBehaviour
     {
         if (_hasControl == hasControl) return;
         _hasControl = hasControl;
-        _input.SetInputEnabled(hasControl);
         if (!hasControl) _parkour.ClearJumpInput();
     }
     public bool GetControl()

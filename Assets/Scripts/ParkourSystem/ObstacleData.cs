@@ -14,14 +14,15 @@ public class ObstacleData
         Vector3 forwardDirection,
         Vector3 playerPosition,
         Vector3 hitPoint,
-        Vector3 hitNormal)
+        Vector3 hitNormal,
+        float rayHeightOffset)
     {
         if (obstacleCollider == null)
             return;
 
         obstacle = obstacleCollider.gameObject;
         Bounds bounds = obstacleCollider.bounds;
-        obstacleHeight = bounds.size.y;
+        obstacleHeight = Mathf.Max(0f, bounds.max.y - hitPoint.y + rayHeightOffset);
         obstacleNormal = hitNormal;
 
         Vector3 forward = Vector3.ProjectOnPlane(forwardDirection, Vector3.up).normalized;

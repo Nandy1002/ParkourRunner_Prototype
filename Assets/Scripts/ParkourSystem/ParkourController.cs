@@ -21,6 +21,7 @@ public class ParkourController : MonoBehaviour
     public bool IsPerformingAction => inAction;
 
     public List<ParkourActionSO> parkourActions;
+    public AudioClip femaleGruntVoice;
 
     private CharacterController _controller;
     private MainInputAssets _input;
@@ -229,6 +230,7 @@ public class ParkourController : MonoBehaviour
 
         inAction = true;
         _lastActionObstacle = obstacle;
+        AudioSource.PlayClipAtPoint(femaleGruntVoice,transform.position);
         bool restoreControl = _thirdPerson != null && _thirdPerson.GetControl();
         bool restoreController = _controller.enabled;
         if (_thirdPerson != null)

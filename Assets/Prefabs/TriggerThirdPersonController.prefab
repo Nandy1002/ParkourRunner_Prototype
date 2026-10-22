@@ -50,7 +50,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5148538678464000054, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
       propertyPath: parkourActions.Array.size
-      value: 5
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 5148538678464000054, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
       propertyPath: 'parkourActions.Array.data[0]'
@@ -67,10 +67,14 @@ PrefabInstance:
     - target: {fileID: 5148538678464000054, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
       propertyPath: 'parkourActions.Array.data[3]'
       value: 
-      objectReference: {fileID: 11400000, guid: f10cb522b5ce42daa22cc947adbcb118, type: 2}
+      objectReference: {fileID: 11400000, guid: 413079c26355ee44bba8ab26fafa08f6, type: 2}
     - target: {fileID: 5148538678464000054, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
       propertyPath: 'parkourActions.Array.data[4]'
       value: 
+      objectReference: {fileID: 11400000, guid: f10cb522b5ce42daa22cc947adbcb118, type: 2}
+    - target: {fileID: 5148538678464000054, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
+      propertyPath: 'parkourActions.Array.data[5]'
+      value:
       objectReference: {fileID: 11400000, guid: 59d69f24eacb44a5bba4c0888734c118, type: 2}
     - target: {fileID: 8047161636021232021, guid: c708a3b79cd542b42bbfedb17e213bc1, type: 3}
       propertyPath: m_Name

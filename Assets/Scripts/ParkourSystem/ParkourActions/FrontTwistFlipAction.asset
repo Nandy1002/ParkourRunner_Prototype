@@ -13,10 +13,9 @@ MonoBehaviour:
   m_Name: FrontTwistFlipAction
   m_EditorClassIdentifier: Assembly-CSharp::ParkourActionSO
   AnimationName: FrontTwistFlip
-  minHeight: 1.25
-  maxHeight: 2.2
-  minLength: 2.5
-  maxLength: 5.5
-  possibleStates:
-  - 2
+  minHeight: 0.65
+  maxHeight: 1.5
+  minLength: 0
+  maxLength: 2
+  possibleStates: 0100000000000000
   triggerDistance: 4

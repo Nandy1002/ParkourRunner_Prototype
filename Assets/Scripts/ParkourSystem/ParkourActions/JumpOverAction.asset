@@ -16,6 +16,6 @@ MonoBehaviour:
   minHeight: 0.25
   maxHeight: 1.25
   minLength: 1.5
-  maxLength: 2
+  maxLength: 3
   possibleStates: 0100000002000000
-  triggerDistance: 3.25
+  triggerDistance: 5
