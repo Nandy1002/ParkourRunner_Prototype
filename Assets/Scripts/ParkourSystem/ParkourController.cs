@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using StarterAssets;
@@ -19,9 +20,12 @@ public class ParkourController : MonoBehaviour
     public float VerticalVelocity { get; private set; }
     public ParkourActionSO CurrentParkourAction { get; private set; }
     public bool IsPerformingAction => inAction;
+    public bool ShouldApplyRootMotionRotation => inAction &&
+        CurrentParkourAction != null && !CurrentParkourAction.RotateToObstacle;
 
     public List<ParkourActionSO> parkourActions;
     public AudioClip femaleGruntVoice;
+    [SerializeField, Min(0f)] private float parkourRotationSpeed = 500f;
 
     private CharacterController _controller;
     private MainInputAssets _input;
@@ -32,8 +36,8 @@ public class ParkourController : MonoBehaviour
     private Vector3 _jumpForwardVelocity;
     private Vector3 _jumpForwardTarget;
     private float _jumpBuffer;
+    private float _parkourInputBuffer;
     private bool inAction;
-    private GameObject _lastActionObstacle;
 
     private static readonly int GroundedId = Animator.StringToHash("Grounded");
     private static readonly int JumpId = Animator.StringToHash("Jump");
@@ -54,13 +58,21 @@ public class ParkourController : MonoBehaviour
         {
             _input.jump = false;
             _jumpBuffer = 0f;
+            _parkourInputBuffer = 0f;
             return;
         }
 
         CheckGround();
         bool wasGrounded = Grounded;
 
-        ReadJumpInput();
+        // Space is reserved for requesting a parkour action; normal jumping stays disabled.
+        bool parkourRequested = _input.jump;
+        _input.jump = false;
+        _jumpBuffer = 0f;
+        if (parkourRequested)
+            _parkourInputBuffer = JumpBufferTime;
+        else
+            _parkourInputBuffer = Mathf.Max(0f, _parkourInputBuffer - Time.deltaTime);
         ApplyGravity();
         MoveCharacter();
 
@@ -69,9 +81,9 @@ public class ParkourController : MonoBehaviour
         UpdateJumpAnimation();
 
         if (_obstacleScanner != null)
-            _obstacleScanner.GetObstacleData();
+            _obstacleScanner.GetObstacleData(GetMaximumActionTriggerDistance());
 
-        TryDoParkour();
+        TryDoParkour(_parkourInputBuffer > 0f);
         
     }
 
@@ -187,21 +199,34 @@ public class ParkourController : MonoBehaviour
 
         return State.Walk;
     }
-    private void TryDoParkour()
+
+    private float GetMaximumActionTriggerDistance()
     {
-        if (inAction || !Grounded || _jumpInProgress || _obstacleScanner == null || parkourActions == null)
+        float maxDistance = 0f;
+        if (parkourActions == null)
+            return maxDistance;
+
+        foreach (ParkourActionSO action in parkourActions)
+        {
+            if (action != null)
+                maxDistance = Mathf.Max(maxDistance, action.TriggerDistance);
+        }
+
+        return maxDistance;
+    }
+
+    private void TryDoParkour(bool parkourRequested)
+    {
+        if (!parkourRequested || inAction || !Grounded || _jumpInProgress ||
+            _obstacleScanner == null || parkourActions == null)
             return;
 
         ObstacleData obstacle = _obstacleScanner.currentObstacle;
         if (obstacle == null)
         {
             CurrentParkourAction = null;
-            _lastActionObstacle = null;
             return;
         }
-
-        if (obstacle.obstacle == _lastActionObstacle)
-            return;
 
         State state = GetCurrentPlayerState();
         foreach (ParkourActionSO action in parkourActions)
@@ -209,36 +234,46 @@ public class ParkourController : MonoBehaviour
             if (action == null || !action.CanDOAction(obstacle, state))
                 continue;
 
+            _parkourInputBuffer = 0f;
             CurrentParkourAction = action;
-            StartCoroutine(DoParkourAction(action, obstacle));
+            Vector3 forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+            float distanceToRestore = Mathf.Max(0f, action.TriggerDistance - obstacle.distanceToObstacle);
+            Vector3 startPositionOffset = -forward * distanceToRestore;
+            StartCoroutine(DoParkourAction(action, obstacle, startPositionOffset));
             return;
         }
 
         CurrentParkourAction = null;
     }
-    private IEnumerator DoParkourAction(ParkourActionSO parkourAction, ObstacleData obstacleData)
+    private IEnumerator DoParkourAction(
+        ParkourActionSO parkourAction,
+        ObstacleData obstacleData,
+        Vector3 startPositionOffset)
     {
-        GameObject obstacle = obstacleData.obstacle;
         if (_animator == null || string.IsNullOrWhiteSpace(parkourAction.AnimationStateName))
         {
             Debug.LogWarning(
                 $"Parkour action '{parkourAction.name}' needs an Animator and an animation state name.",
                 this);
-            _lastActionObstacle = obstacle;
+            CurrentParkourAction = null;
             yield break;
         }
 
         inAction = true;
-        _lastActionObstacle = obstacle;
+        CurrentParkourAction = parkourAction;
         AudioSource.PlayClipAtPoint(femaleGruntVoice,transform.position);
         bool restoreControl = _thirdPerson != null && _thirdPerson.GetControl();
         bool restoreController = _controller.enabled;
         if (_thirdPerson != null)
+        {
             _thirdPerson.SetControl(false);
+            _thirdPerson.SetJumpHorizontalVelocity(Vector3.zero);
+        }
 
         // The upright CharacterController blocks the animation's path over the
         // obstacle, so root motion moves the transform directly during this action.
         _controller.enabled = false;
+        transform.position += startPositionOffset;
 
         _jumpBuffer = 0f;
         SetAnimation(JumpId, false);
@@ -246,6 +281,15 @@ public class ParkourController : MonoBehaviour
 
         _animator.Play(parkourAction.AnimationStateName, 0, 0f);
         yield return null;
+
+        Vector3 targetForward = Vector3.ProjectOnPlane(-obstacleData.obstacleNormal, Vector3.up);
+        if (targetForward.sqrMagnitude < 0.0001f && _obstacleScanner != null)
+            targetForward = Vector3.ProjectOnPlane(_obstacleScanner.transform.forward, Vector3.up);
+        if (targetForward.sqrMagnitude < 0.0001f)
+            targetForward = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
+        Quaternion targetRotation = targetForward.sqrMagnitude > 0.0001f
+            ? Quaternion.LookRotation(targetForward.normalized, Vector3.up)
+            : transform.rotation;
 
         float elapsed = 0f;
         AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
@@ -263,6 +307,10 @@ public class ParkourController : MonoBehaviour
                    stateInfo.normalizedTime < 1f && elapsed < timeout)
             {
                 elapsed += Time.deltaTime;
+                if (parkourAction.RotateToObstacle)
+                    transform.rotation = Quaternion.RotateTowards(
+                        transform.rotation, targetRotation, parkourRotationSpeed * Time.deltaTime);
+
                 yield return null;
                 stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
             }
@@ -278,5 +326,6 @@ public class ParkourController : MonoBehaviour
 
         _controller.enabled = restoreController;
         inAction = false;
+        CurrentParkourAction = null;
     }
 }

@@ -19,3 +19,4 @@ MonoBehaviour:
   maxLength: 999
   possibleStates: 000000000100000002000000
   triggerDistance: 1.5
+  rotateToObstacle: 1

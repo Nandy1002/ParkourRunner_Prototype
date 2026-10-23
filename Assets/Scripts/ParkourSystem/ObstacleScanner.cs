@@ -20,14 +20,20 @@ public class ObstacleScanner : MonoBehaviour
 
     public ObstacleData GetObstacleData()
     {
+        return GetObstacleData(forwardLength);
+    }
+
+    public ObstacleData GetObstacleData(float minimumScanDistance)
+    {
         Vector3 origin = transform.position + forwardOffset;
         Vector3 direction = transform.forward;
+        float scanDistance = Mathf.Max(forwardLength, minimumScanDistance);
 
         bool forwardHit = Physics.Raycast(
             origin,
             direction,
             out RaycastHit forwardObstacle,
-            forwardLength,
+            scanDistance,
             obstacleLayer,
             QueryTriggerInteraction.Ignore
         );
@@ -44,7 +50,7 @@ public class ObstacleScanner : MonoBehaviour
 
         Debug.DrawRay(
             origin,
-            direction * forwardLength,
+            direction * scanDistance,
             forwardHit ? Color.red : Color.green
         );
 

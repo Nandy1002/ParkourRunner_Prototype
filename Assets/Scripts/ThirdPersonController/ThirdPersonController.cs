@@ -350,7 +350,8 @@ public class ThirdPersonController : MonoBehaviour
         // ---- accelerate / decelerate with momentum
         float accel = hasInput ? Acceleration : Deceleration;
         if (!_parkour.Grounded) accel *= AirControl;
-        _horizontalVelocity = Vector3.MoveTowards(_horizontalVelocity, desiredVelocity, accel * dt);
+        _horizontalVelocity = Vector3.MoveTowards(
+            _horizontalVelocity, desiredVelocity, accel * dt);
 
         // ---- follow slopes so we don't bounce down ramps
         Vector3 horizontal = _horizontalVelocity;
@@ -393,7 +394,8 @@ public class ThirdPersonController : MonoBehaviour
             return;
 
         transform.position += _animator.deltaPosition;
-        transform.rotation *= _animator.deltaRotation;
+        if (_parkour.ShouldApplyRootMotionRotation)
+            transform.rotation *= _animator.deltaRotation;
     }
 
     private void OnFootstep(AnimationEvent animationEvent)

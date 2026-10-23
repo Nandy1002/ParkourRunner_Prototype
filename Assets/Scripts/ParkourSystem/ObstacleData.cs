@@ -31,9 +31,16 @@ public class ObstacleData
 
         distanceToObstacle = Mathf.Max(0f, Vector3.Dot(hitPoint - playerPosition, forward));
 
-        // Project the world-space bounds onto the runner's forward axis so rotated
-        // obstacles are measured by the depth the player actually has to cross.
-        obstacleLength = Mathf.Abs(forward.x) * bounds.size.x +
-                         Mathf.Abs(forward.z) * bounds.size.z;
+        // Measure the obstacle along the horizontal hit-normal axis. The surface
+        // normal identifies the face that was hit, even when the ray approaches
+        // from an angle. Fall back to the ray direction for near-horizontal surfaces.
+        Vector3 lengthAxis = Vector3.ProjectOnPlane(hitNormal, Vector3.up);
+        if (lengthAxis.sqrMagnitude < 0.0001f)
+            lengthAxis = forward;
+        else
+            lengthAxis.Normalize();
+
+        obstacleLength = Mathf.Abs(lengthAxis.x) * bounds.size.x +
+                         Mathf.Abs(lengthAxis.z) * bounds.size.z;
     }
 }

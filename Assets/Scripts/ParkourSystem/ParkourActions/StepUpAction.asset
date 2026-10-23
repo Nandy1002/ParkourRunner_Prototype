@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: StepUpAction
   m_EditorClassIdentifier: Assembly-CSharp::ParkourActionSO
   AnimationName: StepUp
-  minHeight: 0.26
+  minHeight: 0.3
   maxHeight: 0.9
   minLength: 1.5
   maxLength: 999
-  possibleStates: 000000000100000002000000
+  possibleStates: 0000000001000000
   triggerDistance: 0.5
+  rotateToObstacle: 1
