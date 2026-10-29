@@ -18,5 +18,9 @@ MonoBehaviour:
   minLength: 1.5
   maxLength: 3
   possibleStates: 0100000002000000
-  triggerDistance: 3
+  triggerDistance: 3.5
   rotateToObstacle: 1
+  enableTargetMatching: 0
+  matchBodyPart: 0
+  matchStartTime: 0
+  matchTargetTime: 0

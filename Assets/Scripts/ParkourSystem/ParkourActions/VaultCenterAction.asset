@@ -20,3 +20,7 @@ MonoBehaviour:
   possibleStates: 02000000
   triggerDistance: 2
   rotateToObstacle: 1
+  enableTargetMatching: 1
+  matchBodyPart: 5
+  matchStartTime: 0.1
+  matchTargetTime: 0.5

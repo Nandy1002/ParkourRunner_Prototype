@@ -22,9 +22,24 @@ public class ParkourActionSO : ScriptableObject
     [SerializeField, Min(0f)] private float triggerDistance = 2.5f;
     [SerializeField] bool rotateToObstacle; 
 
+    [Header("Target Matching")]
+    [SerializeField] bool enableTargetMatching;
+    [SerializeField] AvatarTarget matchBodyPart;
+    [SerializeField] float matchStartTime;
+    [SerializeField] float matchTargetTime;
+    [SerializeField] Vector3 matchPosWeight = new Vector3(0,1,0);
+
     public string AnimationStateName => AnimationName;
     public bool RotateToObstacle => rotateToObstacle;
     public float TriggerDistance => triggerDistance;
+    
+    public bool EnableTargetMatching => enableTargetMatching;
+    public AvatarTarget MatchBodyPart => matchBodyPart;
+    public float MatchStartTime => matchStartTime;
+    public float MatchTargetTime => matchTargetTime;
+    public Vector3 MatchPosWeight => matchPosWeight;
+    public Vector3 MatchPos {get; set;}
+
 
     public bool CanDOAction(ObstacleData obstacle,State currentPlayerState)
     {

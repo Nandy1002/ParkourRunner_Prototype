@@ -4,6 +4,7 @@ public class ObstacleScanner : MonoBehaviour
 {
     [SerializeField] private Vector3 forwardOffset;
     [SerializeField] private float forwardLength = 2f;
+    [SerializeField, Range(0f, 1f)] private float minimumFacingDot = 0.7f;
     [SerializeField] private LayerMask obstacleLayer;
     [SerializeField] private bool logScanResults = true;
 
@@ -37,6 +38,16 @@ public class ObstacleScanner : MonoBehaviour
             obstacleLayer,
             QueryTriggerInteraction.Ignore
         );
+
+        // A ray can graze the side of an obstacle at a corner. Only accept
+        // vertical faces that are reasonably square to the player's approach.
+        // The dot product is 1 for a head-on face and 0 for a side-on face.
+        if (forwardHit)
+        {
+            Vector3 horizontalNormal = Vector3.ProjectOnPlane(forwardObstacle.normal, Vector3.up).normalized;
+            float facingDot = Vector3.Dot(-horizontalNormal, direction);
+            forwardHit = horizontalNormal.sqrMagnitude > 0.0001f && facingDot >= minimumFacingDot;
+        }
 
         currentObstacle = forwardHit
             ? new ObstacleData(

@@ -8,6 +8,7 @@ public class ObstacleData
     public float obstacleLength;
     public float distanceToObstacle;
     public Vector3 obstacleNormal;
+    public Vector3 heightHitPoint;
 
     public ObstacleData(
         Collider obstacleCollider,
@@ -22,6 +23,7 @@ public class ObstacleData
 
         obstacle = obstacleCollider.gameObject;
         Bounds bounds = obstacleCollider.bounds;
+        heightHitPoint = new Vector3(hitPoint.x, bounds.max.y, hitPoint.z);
         obstacleHeight = Mathf.Max(0f, bounds.max.y - hitPoint.y + rayHeightOffset);
         obstacleNormal = hitNormal;
 

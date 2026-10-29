@@ -236,9 +236,25 @@ public class ParkourController : MonoBehaviour
 
             _parkourInputBuffer = 0f;
             CurrentParkourAction = action;
-            Vector3 forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
-            float distanceToRestore = Mathf.Max(0f, action.TriggerDistance - obstacle.distanceToObstacle);
-            Vector3 startPositionOffset = -forward * distanceToRestore;
+            action.MatchPos = obstacle.heightHitPoint;
+            Vector3 wallNormal = Vector3.ProjectOnPlane(obstacle.obstacleNormal, Vector3.up).normalized;
+            Vector3 startPositionOffset;
+            if (action.RotateToObstacle && wallNormal.sqrMagnitude > 0.0001f)
+            {
+                // Measure and correct distance perpendicular to the wall. Backing
+                // up along the incoming direction leaves the player too close when
+                // approaching at an angle, so root motion can carry them into it.
+                float distanceFromWall = Vector3.Dot(
+                    transform.position - obstacle.heightHitPoint, wallNormal);
+                float distanceToRestore = Mathf.Max(0f, action.TriggerDistance - distanceFromWall);
+                startPositionOffset = wallNormal * distanceToRestore;
+            }
+            else
+            {
+                Vector3 forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+                float distanceToRestore = Mathf.Max(0f, action.TriggerDistance - obstacle.distanceToObstacle);
+                startPositionOffset = -forward * distanceToRestore;
+            }
             StartCoroutine(DoParkourAction(action, obstacle, startPositionOffset));
             return;
         }
@@ -270,18 +286,6 @@ public class ParkourController : MonoBehaviour
             _thirdPerson.SetJumpHorizontalVelocity(Vector3.zero);
         }
 
-        // The upright CharacterController blocks the animation's path over the
-        // obstacle, so root motion moves the transform directly during this action.
-        _controller.enabled = false;
-        transform.position += startPositionOffset;
-
-        _jumpBuffer = 0f;
-        SetAnimation(JumpId, false);
-        SetAnimation(FreeFallId, false);
-
-        _animator.Play(parkourAction.AnimationStateName, 0, 0f);
-        yield return null;
-
         Vector3 targetForward = Vector3.ProjectOnPlane(-obstacleData.obstacleNormal, Vector3.up);
         if (targetForward.sqrMagnitude < 0.0001f && _obstacleScanner != null)
             targetForward = Vector3.ProjectOnPlane(_obstacleScanner.transform.forward, Vector3.up);
@@ -290,6 +294,20 @@ public class ParkourController : MonoBehaviour
         Quaternion targetRotation = targetForward.sqrMagnitude > 0.0001f
             ? Quaternion.LookRotation(targetForward.normalized, Vector3.up)
             : transform.rotation;
+
+        // The upright CharacterController blocks the animation's path over the
+        // obstacle, so root motion moves the transform directly during this action.
+        _controller.enabled = false;
+        transform.position += startPositionOffset;
+        if (parkourAction.RotateToObstacle)
+            transform.rotation = targetRotation;
+
+        _jumpBuffer = 0f;
+        SetAnimation(JumpId, false);
+        SetAnimation(FreeFallId, false);
+
+        _animator.Play(parkourAction.AnimationStateName, 0, 0f);
+        yield return null;
 
         float elapsed = 0f;
         AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
@@ -308,8 +326,12 @@ public class ParkourController : MonoBehaviour
             {
                 elapsed += Time.deltaTime;
                 if (parkourAction.RotateToObstacle)
-                    transform.rotation = Quaternion.RotateTowards(
-                        transform.rotation, targetRotation, parkourRotationSpeed * Time.deltaTime);
+                    transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, parkourRotationSpeed * Time.deltaTime);
+
+                if (parkourAction.EnableTargetMatching)
+                {
+                    MatchTarget(parkourAction);
+                }
 
                 yield return null;
                 stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
@@ -327,5 +349,16 @@ public class ParkourController : MonoBehaviour
         _controller.enabled = restoreController;
         inAction = false;
         CurrentParkourAction = null;
+    }
+    private void MatchTarget(ParkourActionSO action)
+    {
+        if(_animator.isMatchingTarget) return;
+
+        _animator.MatchTarget(action.MatchPos,
+                            transform.rotation,
+                            action.MatchBodyPart,
+                            new MatchTargetWeightMask(action.MatchPosWeight,0),
+                            action.MatchStartTime,
+                            action.MatchTargetTime);
     }
 }
